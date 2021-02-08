@@ -1,0 +1,354 @@
+%!TeX program = xelatex
+
+%        File: hello.tex
+%     Created: 四 12月 17 09:00 下午 2020 C
+% Last Change: 四 12月 17 09:00 下午 2020 C
+%
+\documentclass[UTF8]{ctexart}
+% 导言区
+\title{cpp刷题总结}
+\author{ChengLu}
+\date{\today}
+\usepackage{listings}
+\usepackage{enumerate}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{常见用法}
+
+\subsection{STL容器}
+
+\subsubsection{序列式容器}
+\begin{itemize}
+\item 向量(vector)后端可高效增加元素的顺序表。
+
+\subsubsection{vector}
+\paragraph{常见操作}
+\begin{enumerate}[(1)]
+\item 插入
+\begin{lstlisting}
+//在pos位置插入item元素
+v.insert(v.begin()+pos, item) 
+//在结尾插入item元素
+v.push_back(item)  
+\end{lstlisting}
+
+\item 遍历删除, 注意调用erase函数后返回的是下一个元素的指针, 与map不一样. string的erase同理.
+\begin{lstlisting}
+//这个代码是删除所有是4的，如果删除第一个，
+//则可以用find找到对应的it，然后vec.erase(it)
+for(auto it=vec.begin();it!=vec.end();){ 
+//注意，因为it如果被删除则不能用++找下一个，
+//所以it的更新在循环里
+   if(*it==4){
+   //如果被删除，则返回的就是下个元素的指针
+       it = vec.erase(it); 
+   }else{
+       it++; //没被删除，则直接++
+   }
+}
+\end{lstlisting}
+\item 打印数组
+\begin{lstlisting}
+//1. copy cout
+copy(v3.begin(), v3.end(), 
+    ostream_iterator<int>(cout, " "));
+//2. for each
+for(auto i: v3)
+    printf("%d ", *i);
+
+\end{lstlisting}
+\item vector<bool>: 
+标准库特别提供了对 bool 的 vector 特化，每个“ bool ”只占 1 bit，且支持动态增长。但是其 operator[] 的返回值的类型不是 bool\& 而是 vector<bool>::reference 。因此，使用 vector<bool> 使需谨慎，可以考虑使用 deque<bool> 或 vector<char> 替代。而如果你需要节省空间，请直接使用 bitset 。
+\end{enumerate}
+
+
+\item 数组 ( array ) C++11 ，定长的顺序表，C 风格数组的简单包装
+\paragraph{为什么要用 array}
+array 实际上是 STL 对数组的封装。它相比 vector 牺牲了动态扩容的特性，但是换来了与原生数组几乎一致的性能（在开满优化的前提下）。因此如果能使用 C++11 特性的情况下，能够使用原生数组的地方几乎都可以直接把定长数组都换成 array ，而动态分配的数组可以替换为 vector 。
+
+
+\item 双端队列 ( deque ) 双端都可高效增加元素的顺序表。
+    \paragraph{std::deque}
+    是 STL 提供的 双端队列 数据结构。能够提供线性复杂度的插入和删除，以及常数复杂度的随机访问。
+
+\item 列表 ( list ) 可以沿双向遍历的链表。
+    \paragraph{std::list}
+    是 STL 提供的 双向链表 数据结构。能够提供线性复杂度的随机访问，以及常数复杂度的插入和删除。
+
+\item 单向列表 ( forward\_list ) 只能沿一个方向遍历的链表。
+    \paragraph{std::forward\_list}
+    是STL提供的单向链表数据结构，相比于std::list减小了空间开销.forward\_list的使用方法与 list几乎一致，但是迭代器只有单向的.
+\end{itemize}
+
+\subsubsection{关联式容器}
+\begin{itemize}
+\item 集合 ( set ) 用以有序地存储 互异 元素的容器。其实现是由节点组成的红黑树，每个节点都包含着一个元素，节点之间以某种比较元素大小的谓词进行排列。
+\paragraph{set}
+是关联容器，含有键值类型对象的已排序集，搜索、移除和插入拥有对数复杂度。 set 内部通常采用红黑树实现。平衡二叉树的特性使得 set 非常适合处理需要同时兼顾查找、插入与删除的情况。
+和数学中的集合相似， set 中不会出现值相同的元素。如果需要有相同元素的集合，需要使用 multiset 。 multiset 的使用方法与 set 的使用方法基本相同。
+\paragraph{insert 函数的返回值}
+insert 函数的返回值类型为 pair<iterator, bool> ，其中 iterator 是一个指向所插入元素（或者是指向等于所插入值的原本就在容器中的元素）的迭代器，而 bool 则代表元素是否插入成功，由于 set 中的元素具有唯一性质，所以如果在 set 中已有等值元素，则插入会失败，返回 false，否则插入成功，返回 true； map 中的 insert 也是如此。
+\paragraph{自定义比较方式}
+set 在默认情况下的比较函数为<（如果是非内置类型需要重载<运算符）。然而在某些特殊情况下，我们希望能自定义 set 内部的比较方式。
+
+
+这时候可以通过传入自定义比较器来解决问题。
+
+
+具体来说，我们需要定义一个类，并在这个类中 重载 () 运算符 。
+
+
+例如，我们想要维护一个存储整数，且较大值靠前的 set ，可以这样实现：
+\begin{lstlisting}
+struct cmp {
+  bool operator()(int a, int b) { return a > b; }
+};
+set<int, cmp> s;
+\end{lstlisting}
+\item 多重集合 ( multiset ) 用以有序地存储元素的容器。允许存在相等的元素。
+\item 映射 ( map ) 由 \{键，值\} 对组成的集合，以某种比较键大小关系的谓词进行排列。
+
+
+    你可能需要存储一些键值对，例如存储学生姓名对应的分数： Tom 0 ， Bob 100 ， Alan 100 。但是由于数组下标只能为非负整数，所以无法用姓名作为下标来存储，这个时候最简单的办法就是使用 STL 中的 map 了！
+\begin{enumerate}[(1)]
+\item 按key排序
+默认map类型是根据key进行降序排列的, unordered\_map才是不排序的.
+\begin{lstlisting}
+#include<map>
+map<int, string> m1;    //按照int降序
+//按照int升序
+map<int, string, greater<int>> m2;  
+//自己的排序函数, 按照字符串长度排序
+struct CmpByKeyLength {
+    bool operator() (const string& k1, const string& k2) {
+        return k1.length() < k2.length();
+    }
+};
+map<string, int, CmpByKeyLength> m3;    //指定自己的排序函数
+\end{lstlisting}
+\item 按value排序
+总体思路是, 将map转换为vector<pair<?,?>>, 然后用sort函数对vector进行排序;
+\begin{lstlisting}
+typedef pair<string, int> PAIR;
+bool cmp_by_value(const PAIR &lhs, const PAIR &rhs) {
+    return lhs.second < rhs.second;
+}
+map<string, int> m;
+vector<PAIR> pairVector(m.begin(), m.end());
+sort(pairVector.begin(), pairVector.end(), cmp_by_value);
+\end{lstlisting}
+\item 遍历删除
+\begin{lstlisting}
+for(it=m.begin();it!=m.end();) {
+        delete it->second;
+        m.erase(it++);
+    }
+\end{lstlisting}
+\end{enumerate}
+
+
+\item 多重映射 ( multimap ) 由 \{键，值\} 对组成的多重集合，亦即允许键有相等情况的映射。
+
+
+    multimap 的使用方法与 map 的使用方法基本相同。正是因为 multimap 允许多个元素拥有同一键的特点， multimap 并没有提供给出键访问其对应值的方法。
+\end{itemize}
+
+
+\subsubsection{无序（关联式）容器: hash table}
+\begin{itemize}
+\item 无序（多重）集合 ( unordered\_set / unordered\_multiset ) C++11 ，与 set / multiset 的区别在与元素无序，只关心”元素是否存在“，使用哈希实现。
+\item 无序（多重）映射 ( unordered\_map / unordered\_multimap ) C++11 ，与 map / multimap 的区别在与键 (key) 无序，只关心 "键与值的对应关系"，使用哈希实现。
+\item 制造哈希冲突
+在最坏情况下，对无序关联式容器进行一些操作的时间复杂度会与容器大小成线性关系。
+
+
+在哈希函数确定的情况下，可以构造出数据使得容器内产生大量哈希冲突，导致复杂度达到上界。
+
+
+在标准库实现里，每个元素的散列值是将值对一个质数取模得到的，更具体地说，g++ 6 及以前版本的编译器，这个质数一般是126271，g++ 7 及之后版本的编译器，这个质数一般是107897）。
+
+
+因此可以通过向容器中插入这些模数的倍数来达到制造大量哈希冲突的目的。
+
+\item 自定义哈希函数
+
+
+使用自定义哈希函数可以有效避免构造数据产生的大量哈希冲突。
+
+
+要想使用自定义哈希函数，需要定义一个结构体，并在结构体中重载 () 运算符，像这样：
+\begin{lstlisting}
+struct my_hash {
+  size_t operator()(int x) const { return x; }
+};
+\end{lstlisting}
+
+当然，为了确保哈希函数不会被迅速破解（例如 Codeforces 中对使用无序关联式容器的提交进行 hack），可以试着在哈希函数中加入一些随机化函数（如时间）来增加破解的难度。
+例如，在 这篇博客(https://codeforces.com/blog/entry/62393) 中给出了如下哈希函数：
+\begin{lstlisting}
+struct my_hash {
+  static uint64_t splitmix64(uint64_t x) {
+    x += 0x9e3779b97f4a7c15;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+    return x ^ (x >> 31);
+  }
+
+  size_t operator()(uint64_t x) const {
+    static const uint64_t FIXED_RANDOM =
+        chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix64(x + FIXED_RANDOM);
+  }
+
+  // 针对 std::pair<int, int> 作为主键类型的哈希函数
+  size_t operator()(pair<uint64_t, uint64_t> x) const {
+    static const uint64_t FIXED_RANDOM =
+        chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix64(x.first + FIXED_RANDOM) ^
+           (splitmix64(x.second + FIXED_RANDOM) >> 1);
+  }
+};
+\end{lstlisting}
+\end{itemize}
+基本用法:
+\begin{lstlisting}[language=C]
+#include<unordered_set>
+#include<unordered_map>
+
+if(set.find(? key) != set.end())    //找某个元素
+set.empty()     //判断是否是空集
+map[key] = value;   //map类型可以直接存取, 
+            //如果key对应的value没有, 则新建键值对
+for(const auto &[k, v]: map)    //foreach 取key, value
+\end{lstlisting}
+\subsubsection{容器适配器}
+
+容器适配器其实并不是容器。它们不具有容器的某些特点（如：有迭代器、有 clear() 函数……）。
+\begin{itemize}
+\item 栈 (stack ) 后进先出 (LIFO) 的容器。
+仅支持查询或删除最后一个加入的元素（栈顶元素），不支持随机访问，且为了保证数据的严格有序性，不支持迭代器。
+
+\item 队列 ( queue ) 先进先出 (FIFO) 的容器。
+    仅支持查询或删除第一个加入的元素（队首元素），不支持随机访问，且为了保证数据的严格有序性，不支持迭代器。
+
+\item 优先队列 ( priority\_queue ) 元素的次序是由作用于所存储的值对上的某种谓词决定的的一种队列。
+\begin{lstlisting}
+#include <queue>  // std::priority_queue
+// 本文里的所有优先队列都会加上命名空间
+// 如果不想加命名空间，需要使用：using std::priority_queue;
+// 不推荐直接使用 using namespace std;
+std::priority_queue<T, Container, Compare> q;
+/*
+ * T: 储存的元素类型
+ * Container:
+ * 储存的容器类型，且要求满足顺序容器的要求、具有随机访问迭代器的要求 且支持
+ * front() / push_back() / pop_back() 三个函数， 标准容器中 std::vector /
+ * std::deque 满足这些要求。 Compare: 默认为严格的弱序比较类型
+ * priority_queue 是按照元素优先级大的在堆顶，根据 operator <
+ * 的定义，默认是大根堆， 我们可以利用
+ * greater<T>（若支持），或者自定义类的小于号重载实现排序。
+ * 注意：只支持小于号重载而不支持其他比较符号的重载。
+ */
+// 构造方式 ：
+std::priority_queue<int> q1;
+std::priority_queue<int, vector<int>> q2;
+// C++11 前，请使用 vector<int> >，空格不可省略
+std::priority_queue<int, deque<int>, greater<int>> q3;
+// 注意：不可跳过容器参数直接传入比较类
+\end{lstlisting}
+\end{itemize}
+
+
+\subsection{string}
+\paragraph{string op}
+\begin{enumerate}[(1)]
+\item 拼接:
+\begin{lstlisting}[language=C]
+s = s1+s2;
+\end{lstlisting}
+\item 取字串, 没有split函数: 
+\begin{lstlisting}[language=C]
+s.substr(int pos, int length);
+\end{lstlisting}
+\item 排序: 
+\begin{lstlisting}[language=C]
+sort(s.begin(), s.end());
+\end{lstlisting}
+\item 比大小, 定义了运算符: ==, <, >等.
+\item 类型转换:
+\begin{itemize}
+\item int(其他数据类型也可)转string:
+\begin{lstlisting}[language=C]
+to_string(a)
+\end{lstlisting}
+\item string转int:
+
+
+c语言方式:
+\begin{lstlisting}[language=C]
+int i = atoi(str.c_str());
+\end{lstlisting}
+C++11方式:
+\begin{lstlisting}[language=C]
+int i = std::stoi(str);
+\end{lstlisting}
+\end{itemize}
+\item find \& replace
+查找函数返回的是size\_type, 由string定义的类型. 如果没找到, 则为npos.
+\begin{lstlisting}
+string::size_type pos;
+pos = str.find("a");
+if (pos != string::npos)
+\end{lstlisting}
+替换函数用法
+\begin{lstlisting}
+str.replace(pos, replace_len, "new str");
+\end{lstlisting}
+\item 打印
+\begin{lstlisting}
+printf("%s", str.c_str());  //printf方式打印
+cout<<str<<endl;            //cout方式打印
+\end{lstlisting}
+\end{enumerate}
+
+\subsection{bitset}
+\paragraph{std::bitset}
+是标准库中的一个存储 0/1 的大小不可变容器。严格来讲，它并不属于 STL。
+由于内存地址是按字节即 byte 寻址，而非比特 bit ，一个 bool 类型的变量，虽然只能表示 0/1 , 但是也占了 1 byte 的内存。
+
+
+使用
+\begin{lstlisting}
+#include <bitset>
+
+bitset<1000> bs;  // a bitset with 1000 bits 初始化
+
+//构造函数
+bitset() // 每一位都是 false 
+bitset(unsigned long val) // 设为 val 的二进制形式。
+bitset(const string& str) : 设为01串str 。
+
+\end{lstlisting}
+bitset 就是通过固定的优化，使得一个字节的八个比特能分别储存 8 位的 0/1 。
+
+\subsection{小技巧}
+\begin{enumerate}[(1)]
+\item 整数除法的向上取整: c = (a + b - 1) / b;
+\item 快速判断整数a是否为2的幂: (a\&(a-1)) == 0;
+
+    解释: 2$^{n}$写成二进制的形式是首位为1,后面各位都为0; 减去1之后就成了首位0, 后面各位为1; 然后做与运算会得到0. 注意外层括号不可省略, 因为位运算的优先级低于赋值运算=.
+
+\end{enumerate}
+
+
+\subsection{Boost库}
+Boost 是除了标准库外，另一个久副盛名的开源 C++ 工具库，其代码具有可移植、高质量、高性能、高可靠性等特点。Boost 中的模块数量非常之大，功能全面，并且拥有完备的跨平台支持，因此被看作 C++ 的准标准库。C++ 标准中的不少特性也都来自于 Boost，如智能指针、元编程、日期和时间等。尽管在 OI 中无法使用 Boost，但是 Boost 中有不少轮子可以用来验证算法或者对拍，如 Boost.Geometry 有 R 树的实现，Boost.Graph 有图的相关算法，Boost.Intrusive 则提供了一套与 STL 容器用法相似的侵入式容器。有兴趣的读者可以自行在网络搜索教程。
+boost lib: https://theboostcpplibraries.com/
+boost ref: https://www.boost.org/
+
+\end{document}
+
+
